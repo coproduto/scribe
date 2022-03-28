@@ -4,6 +4,50 @@ pub trait Source<Output> {
     fn read(&mut self) -> Output;
 }
 
+pub fn const_by_ref<T>(value: &T) -> impl Source<&T> {
+    CopySource { value }
+}
+
+pub fn const_by_copy<T>(value: T) -> impl Source<T>
+where
+    T: Copy,
+{
+    CopySource { value }
+}
+
+struct CopySource<Output> {
+    value: Output,
+}
+
+impl<Output> Source<Output> for CopySource<Output>
+where
+    Output: Copy,
+{
+    fn read(&mut self) -> Output {
+        self.value
+    }
+}
+
+pub fn const_by_clone<T>(value: T) -> impl Source<T>
+where
+    T: Clone,
+{
+    ConstCloneSource { value }
+}
+
+struct ConstCloneSource<Output> {
+    value: Output,
+}
+
+impl<Output> Source<Output> for ConstCloneSource<Output>
+where
+    Output: Clone,
+{
+    fn read(&mut self) -> Output {
+        self.value.clone()
+    }
+}
+
 struct MapSource<'a, Input, Output> {
     inner_source: &'a mut dyn Source<Input>,
     transformer: &'a dyn Fn(Input) -> Output,

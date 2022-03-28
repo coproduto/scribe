@@ -2,6 +2,7 @@ use handlebars::Handlebars;
 use pulldown_cmark::{html, Options, Parser};
 use std::collections::HashMap;
 
+mod node;
 mod source;
 
 fn main() {
