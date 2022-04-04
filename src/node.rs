@@ -1,16 +1,28 @@
 use crate::source;
 pub use crate::source::Source;
 
+pub trait LifecycleManager<ValueType> {
+    fn init(&mut self);
+    fn update(&mut self, new_value: &ValueType);
+}
+
 pub struct Node<'a, ValueType> {
     source: &'a mut dyn Source<ValueType>,
     value: Option<ValueType>,
+    lifecycle_manager: &'a mut dyn LifecycleManager<ValueType>,
 }
 
 impl<'a, ValueType> Node<'a, ValueType> {
-    pub fn new(source: &'a mut dyn Source<ValueType>) -> Self {
+    pub fn new(
+        source: &'a mut dyn Source<ValueType>,
+        lifecycle_manager: &'a mut dyn LifecycleManager<ValueType>,
+    ) -> Self {
+        lifecycle_manager.init();
+
         Self {
             source,
             value: None,
+            lifecycle_manager,
         }
     }
 
@@ -20,7 +32,10 @@ impl<'a, ValueType> Node<'a, ValueType> {
         };
         match self.value {
             None => unreachable!(),
-            Some(ref value) => source::const_by_ref(value),
+            Some(ref value) => {
+                self.lifecycle_manager.update(value);
+                source::const_by_ref(value)
+            }
         }
     }
 }
@@ -35,6 +50,7 @@ where
             None => {
                 let value = self.source.read();
                 self.value = Some(value);
+                self.lifecycle_manager.update(&value);
                 source::const_by_copy(value)
             }
         }
@@ -51,7 +67,10 @@ where
         };
         match self.value {
             None => unreachable!(),
-            Some(ref value) => source::const_by_clone(value.clone()),
+            Some(ref value) => {
+                self.lifecycle_manager.update(value);
+                source::const_by_clone(value.clone())
+            }
         }
     }
 }
