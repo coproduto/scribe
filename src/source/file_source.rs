@@ -1,49 +1,60 @@
+use std::fs;
 use std::fs::File;
 use std::io::{Read, Result};
 use std::path::Path;
 
 use super::Source;
 
-struct BinaryFileSource {
+struct BinaryFileSource<'a, PathType> {
+    path: &'a PathType,
     file: File,
 }
 
-impl BinaryFileSource {
-    fn new<P>(path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+impl<'a, PathType> BinaryFileSource<'a, PathType>
+where
+    PathType: AsRef<Path>,
+{
+    fn new(path: &'a PathType) -> Result<Self> {
         let file = File::open(path)?;
-        Ok(Self { file })
+        Ok(Self { path, file })
     }
 }
 
-impl Source<Result<Vec<u8>>> for BinaryFileSource {
-    fn read(&mut self) -> Result<Vec<u8>> {
+impl<'a, PathType> Source<Result<(fs::Metadata, Vec<u8>)>> for BinaryFileSource<'a, PathType>
+where
+    PathType: AsRef<Path>,
+{
+    fn read(&mut self) -> Result<(fs::Metadata, Vec<u8>)> {
+        let metadata = fs::metadata(self.path)?;
         let mut data = Vec::new();
         self.file.read_to_end(&mut data)?;
-        Ok(data)
+        Ok((metadata, data))
     }
 }
 
-struct TextFileSource {
+struct TextFileSource<'a, PathType> {
+    path: &'a PathType,
     file: File,
 }
 
-impl TextFileSource {
-    fn new<P>(path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+impl<'a, PathType> TextFileSource<'a, PathType>
+where
+    PathType: AsRef<Path>,
+{
+    fn new(path: &'a PathType) -> Result<Self> {
         let file = File::open(path)?;
-        Ok(Self { file })
+        Ok(Self { path, file })
     }
 }
 
-impl Source<Result<String>> for TextFileSource {
-    fn read(&mut self) -> Result<String> {
+impl<'a, PathType> Source<Result<(fs::Metadata, String)>> for TextFileSource<'a, PathType>
+where
+    PathType: AsRef<Path>,
+{
+    fn read(&mut self) -> Result<(fs::Metadata, String)> {
+        let metadata = fs::metadata(self.path)?;
         let mut data = String::new();
         self.file.read_to_string(&mut data)?;
-        Ok(data)
+        Ok((metadata, data))
     }
 }
